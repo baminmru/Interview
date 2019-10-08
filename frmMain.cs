@@ -10,17 +10,16 @@ using System.Windows.Forms;
 using Accord.Video;
 using Accord.Video.DirectShow;
 using Accord;
-using Accord.Audio;
-using Accord.Audio.Formats;
+
 using Accord.Video.FFMPEG;
 using System.Xml;
 using NAudio.Wave;
 using System.IO;
-using Accord.DirectSound;
-using Accord.Audio.Filters;
+
 using Newtonsoft.Json;
 using System.Net.Http;
 using NLog;
+using System.Diagnostics;
 
 
 namespace Interview
@@ -39,17 +38,17 @@ namespace Interview
         private bool VideoRecording = false;
 
         // Audio
-        private MemoryStream stream;
+        //private MemoryStream stream;
 
-        private IAudioSource AudioSource;
+       // private IAudioSource AudioSource;
 
-        private WaveEncoder encoder;
+        //private WaveEncoder encoder;
      
 
 
-        private int frames;
-        private int samples;
-        private TimeSpan duration;
+        //private int frames;
+        //private int samples;
+        //private TimeSpan duration;
 
         //public int FrameCount=0;
         private Guid UserID;
@@ -211,8 +210,11 @@ namespace Interview
         {
             if (photoSourcePlayer.VideoSource != null)
             {
-                // stop video device
+                // stop photo device
                 photoSourcePlayer.SignalToStop();
+            }
+            if (photoSourcePlayer.VideoSource != null)
+            {
                 photoSourcePlayer.WaitForStop();
                 photoSourcePlayer.VideoSource = null;
 
@@ -221,18 +223,21 @@ namespace Interview
 
         private void DisconnectVideo()
         {
-            if (AudioSource != null)
+            if (VideoRecording)
             {
-                AudioSource.Stop();
-                AudioSource = null;
-            }
-            if (videoSourcePlayer.VideoSource != null)
-            {
-                // stop video device
-                videoSourcePlayer.SignalToStop();
-                videoSourcePlayer.WaitForStop();
-                videoSourcePlayer.VideoSource = null;
-
+               
+                if (videoSourcePlayer.VideoSource != null)
+                {
+                    // stop video device
+                    videoSourcePlayer.SignalToStop();
+                }
+              
+                if (videoSourcePlayer.VideoSource != null)
+                {
+                    videoSourcePlayer.WaitForStop();
+                    videoSourcePlayer.VideoSource = null;
+                }
+                VideoRecording = false;
             }
             
         }
@@ -279,8 +284,7 @@ namespace Interview
 
         private void FrmMain_FormClosing(object sender, FormClosingEventArgs e)
         {
-            Disconnect();
-            DisconnectVideo();
+            StopAll();
         }
 
         private void CmdPath_Click(object sender, EventArgs e)
@@ -305,37 +309,9 @@ namespace Interview
 
         private void StopAll()
         {
-            VideoRecording = false;
-
             Disconnect();
             DisconnectVideo();
 
-           
-
-            if (FileWriter != null)
-            {
-
-
-
-                lock (FileWriter)
-                {
-                    FileWriter.Flush();
-                    FileStream fs = new FileStream(txtPath.Text + "/" + UserID.ToString() + ".snd",FileMode.Create);
-                    stream.WriteTo(fs);
-                    fs.Close();
-                    encoder.Close();
-                    stream.Dispose();
-                    stream = null;
-                    fs.Dispose();
-
-                    FileWriter.Close();
-                }
-                FileWriter = null;
-                logger.Info("Merging tracks for video");
-                mergefile(txtPath.Text + "/" + UserID.ToString() + ".snd", txtPath.Text + "/" + UserID.ToString() + "_video.avi", txtPath.Text + "/" + UserID.ToString() + ".avi");
-
-
-            }
 
             if (waveIn != null)
             {
@@ -348,7 +324,25 @@ namespace Interview
                 }
                 waveIn.Dispose();
                 waveIn = null;
+
+               
             }
+
+            if (FileWriter != null)
+            {
+                lock (FileWriter)
+                {
+                    FileWriter.Flush();
+                    VideoRecording = false;
+                    FileWriter.Close();
+                }
+                FileWriter = null;
+
+                logger.Info("Merging tracks for video");
+                mergefile(txtPath.Text + "/" + UserID.ToString() + ".snd", txtPath.Text + "/" + UserID.ToString() + "_video.avi", txtPath.Text + "/" + UserID.ToString() + ".avi");
+            }
+
+            
            
         }
 
@@ -358,10 +352,12 @@ namespace Interview
            
             System.Diagnostics.Process proc = new System.Diagnostics.Process();
 
+            string mp3file = wavefilepath.Replace(".snd", ".mp3");
+
             try
             {
 
-                proc.StartInfo.Arguments = string.Format("-y -i {0} -i {1} -acodec copy -vcodec copy {2}", wavefilepath, videofilepath, mergedfilepath);
+                proc.StartInfo.Arguments = string.Format("-y -i {0} -vn -ar 16000 -ac 1 -acodec libmp3lame {1}", wavefilepath, mp3file);
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.CreateNoWindow = false;
                 proc.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
@@ -384,9 +380,41 @@ namespace Interview
                 proc.WaitForExit();
                 proc.Close();
             }
+
+
+            //ffmpeg - i input.wav - vn - ar 44100 - ac 2 - b:a 192k output.mp3
+
+            try
+            {
+               
+                proc.StartInfo.Arguments = string.Format("-y -i {0} -i {1} -acodec copy -vcodec copy {2}", mp3file, videofilepath, mergedfilepath);
+                proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.CreateNoWindow = false;
+                proc.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                proc.StartInfo.RedirectStandardOutput = true;
+                proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.FileName = Path_FFMPEG;
+                proc.Start();
+
+                string StdOutVideo = proc.StandardOutput.ReadToEnd();
+                string StdErrVideo = proc.StandardError.ReadToEnd();
+                logger.Debug(StdErrVideo);
+                logger.Debug(StdOutVideo);
+            }
+            catch (System.Exception ex)
+            {
+                logger.Error(ex);
+            }
+            finally
+            {
+                proc.WaitForExit();
+                proc.Close();
+            }
+
             try
             {
                 File.Delete(wavefilepath);
+                File.Delete(mp3file);
                 File.Delete(videofilepath);
             }
             catch (System.Exception ex)
@@ -466,18 +494,18 @@ namespace Interview
             }
         }
 
-        private void AudioSource_NewFrame(object sender, Accord.Audio.NewFrameEventArgs eventArgs)
-        {
-            if (!VideoRecording) return;
-            //// Save to memory
-            encoder.Encode(eventArgs.Signal);
+        //private void AudioSource_NewFrame(object sender, Accord.Audio.NewFrameEventArgs eventArgs)
+        //{
+        //    if (!VideoRecording) return;
+        //    //// Save to memory
+        //   // encoder.Encode(eventArgs.Signal);
            
-            // Update counters
-            duration += eventArgs.Signal.Duration;
+        //    // Update counters
+        //    //duration += eventArgs.Signal.Duration;
           
-            frames += eventArgs.Signal.Length;
+        //    //frames += eventArgs.Signal.Length;
 
-        }
+        //}
 
         private void StartRecord_Click(object sender, EventArgs e)
         {
@@ -487,34 +515,66 @@ namespace Interview
                 return;
             }
 
-            logger.Info("Start record video");
-            FileWriter = new VideoFileWriter();
-
-            AudioSource = new AudioCaptureDevice()
+            if (videoSourcePlayer.VideoSource == null)
             {
-                // Listen on 22050 Hz
-                DesiredFrameSize = 8192,
-                SampleRate = 22050,
-                // We will be reading 16-bit PCM
-                Format = SampleFormat.Format16Bit
-            };
-            duration = TimeSpan.FromTicks(0);
-            AudioSource.NewFrame += AudioSource_NewFrame;
+                if (videoDevice != null)
+                {
+                    if ((videoCapabilities != null) && (videoCapabilities.Length != 0))
+                    {
+
+                        if (videoResolutionCombo.SelectedIndex >= 0 && videoResolutionCombo.SelectedIndex < videoCapabilities.Length)
+                            videoDevice.VideoResolution = videoCapabilities[videoResolutionCombo.SelectedIndex];
+                        else
+                            videoDevice.VideoResolution = videoCapabilities[0];
+                    }
+
+                    videoSourcePlayer.VideoSource = videoDevice;
+                    videoSourcePlayer.Start();
+                }
+            }
+
+            logger.Info("Start record video");
+            VideoRecording = true;
+            FrameCount = 0;
+            StartTime = DateTime.Now;
+
+            logger.Info("Start record audio");
+            waveIn = new WaveInEvent();
+            waveIn.DeviceNumber = AudioDevices.SelectedIndex;
+            waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
            
 
+            waveIn.BufferMilliseconds = 1000;
+            waveFile = new WaveFileWriter(txtPath.Text + "/" + UserID.ToString() + ".snd", waveIn.WaveFormat);
+            waveIn.DataAvailable += WaveOnDataAvailable;
+            waveIn.StartRecording();
+
+
+            //AudioSource = new AudioCaptureDevice()
+            //{
+            //    // Listen on 22050 Hz
+            //    DesiredFrameSize = 8192,
+            //    SampleRate = 22050,
+            //    // We will be reading 16-bit PCM
+            //    Format = SampleFormat.Format16Bit
+            //};
+            ////duration = TimeSpan.FromTicks(0);
+            //AudioSource.NewFrame += AudioSource_NewFrame;
+
+
             // Create stream to store file
-            stream = new MemoryStream();
-            encoder = new WaveEncoder(stream);
-
-            VideoRecording = true;
+            //stream = new MemoryStream();
+            //encoder = new WaveEncoder(stream);
 
 
+            FileWriter = new VideoFileWriter();
             //FileWriter.Codec = VideoCodec.MPEG4;
             //FileWriter.Height = videoDevice.VideoResolution.FrameSize.Height;
             //FileWriter.Width  = videoDevice.VideoResolution.FrameSize.Width;
+
             // Start
-            FileWriter.Open(txtPath.Text + "/" + UserID.ToString() + "_video.avi", videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height);
-            AudioSource.Start();
+            FileWriter.Open(txtPath.Text + "/" + UserID.ToString() + "_video.avi", videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height,16,VideoCodec.MPEG4);
+            //AudioSource.Start();
 
             startRecord.Enabled = false;
             stopRecord.Enabled = true;
@@ -522,8 +582,8 @@ namespace Interview
         }
         private void WaveOnDataAvailable(object sender, WaveInEventArgs a)
         {
-            waveFile.Write(a.Buffer, 0, a.BytesRecorded);
-            System.Diagnostics.Debug.Print("recoded: " + a.BytesRecorded.ToString());
+            waveFile.WriteAsync(a.Buffer, 0, a.BytesRecorded);
+            //System.Diagnostics.Debug.Print("recoded: " + a.BytesRecorded.ToString());
             
         }
 
@@ -535,6 +595,13 @@ namespace Interview
                 MessageBox.Show("Задайте путь для сохранения файлов");
                 return;
             }
+
+            //if (txtQServer.Text == "")
+            //{
+            //    MessageBox.Show("Задайте имя сервера для проверки качества");
+            //    return;
+            //}
+
             cmdShot.Enabled = false;
             logger.Info("Make photo");
             try
@@ -550,20 +617,30 @@ namespace Interview
                     }
                 }
 
-                lblPhoto.Text = "Идет проверка";
-                lblPhoto.ForeColor = Color.Blue;
-
-                bool result = await VerifyPhoto();
-                if (result)
+                if (txtQServer.Text == "")
                 {
+                    lblPhoto.Text = "Сервер для проверки не определен. Фото не проверяется!";
+                    lblPhoto.ForeColor = Color.Red;
                     cmdNext1.Enabled = true;
-                    lblPhoto.Text = "Проверено!";
-                    lblPhoto.ForeColor = Color.Green;
                 }
                 else
                 {
-                    lblPhoto.Text = "Ещё разок :-(";
-                    lblPhoto.ForeColor = Color.Red;
+
+                    lblPhoto.Text = "Идет проверка";
+                    lblPhoto.ForeColor = Color.Blue;
+
+                    bool result = await VerifyPhoto();
+                    if (result)
+                    {
+                        cmdNext1.Enabled = true;
+                        lblPhoto.Text = "Проверено!";
+                        lblPhoto.ForeColor = Color.Green;
+                    }
+                    else
+                    {
+                        lblPhoto.Text = "Ещё разок :-(";
+                        lblPhoto.ForeColor = Color.Red;
+                    }
                 }
             }
             catch (System.Exception ex)
@@ -842,6 +919,12 @@ namespace Interview
                 MessageBox.Show("Задайте путь для сохранения файлов");
                 return;
             }
+            //if (txtQServer.Text == "")
+            //{
+            //    MessageBox.Show("Задайте имя сервера для проверки качества");
+            //    return;
+            //}
+
             logger.Info("Start record audio");
             waveIn = new WaveInEvent();
             waveIn.DeviceNumber = AudioDevices.SelectedIndex;
@@ -866,26 +949,35 @@ namespace Interview
             logger.Info("Stop record audio");
             StopAll();
             timer1.Enabled = false;
-            lblRecording.Text = "Проверка записи";
-            lblRecording.ForeColor = Color.Blue;
 
-            cmdStartAudioRecord.Enabled = true;
-            cmdStopAudioRecord.Enabled = false;
-
-            bool result = await VerifyRecord();
-            if (result)
+            if (txtQServer.Text == "")
             {
+                lblRecording.Text = "Сервер для проверки не задан. Проверка аудио не производится." ;
+                lblRecording.ForeColor = Color.Red;
                 cmdNext2.Enabled = true;
-                lblRecording.Text = "Качество записи удовлетворительно";
-                lblRecording.ForeColor = Color.Green;
             }
             else
             {
-                lblRecording.Text = "Проверка дала отрицательный результат. (" +VerifyState +")";
-                lblRecording.ForeColor = Color.Red;
-            }
+                lblRecording.Text = "Проверка записи";
+                lblRecording.ForeColor = Color.Blue;
 
-            
+                cmdStartAudioRecord.Enabled = true;
+                cmdStopAudioRecord.Enabled = false;
+
+                bool result = await VerifyRecord();
+                if (result)
+                {
+                    cmdNext2.Enabled = true;
+                    lblRecording.Text = "Качество записи удовлетворительно";
+                    lblRecording.ForeColor = Color.Green;
+                }
+                else
+                {
+                    lblRecording.Text = "Проверка дала отрицательный результат. (" + VerifyState + ")";
+                    lblRecording.ForeColor = Color.Red;
+                }
+
+            }
 
         }
 
@@ -1205,6 +1297,9 @@ namespace Interview
 
         }
 
+        private uint FrameCount=0;
+        private DateTime StartTime;
+        private TimeSpan ts = new TimeSpan(0);
         private void VideoSourcePlayer_NewFrame_1(object sender, ref Bitmap image)
         {
             if (!VideoRecording) return;
@@ -1212,20 +1307,27 @@ namespace Interview
             if (FileWriter != null)
             {
 
-                lock (FileWriter)
-                {
+                //lock (FileWriter)
+                //{
                     try
                     {
-                        FileWriter.WriteVideoFrame(image);
-                        FileWriter.Flush();
+                        FrameCount++;
+                        //ts = DateTime.Now - StartTime;
+                        FileWriter.WriteVideoFrame(image,FrameCount);
+                        //System.Diagnostics.Debug.Print("NewFrame: " + FrameCount.ToString());
                     }
                     catch (System.Exception ex)
                     {
                         logger.Error(ex);
                     }
 
-                }
+                //}
             }
+        }
+
+        private void PictureBox1_Click(object sender, EventArgs e)
+        {
+            Process.Start("https://linkas.ru/");
         }
     }
 }
