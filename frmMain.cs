@@ -20,12 +20,13 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using NLog;
 using System.Diagnostics;
-
+using System.Drawing.Imaging;
 
 namespace Interview
 {
     public partial class frmMain : Form
     {
+        private const int MINAUDIO = 1;
         private static Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private WaveInEvent waveIn;
         private WaveFileWriter waveFile;
@@ -223,7 +224,7 @@ namespace Interview
 
         private void DisconnectVideo()
         {
-            if (VideoRecording)
+            //if (VideoRecording)
             {
                
                 if (videoSourcePlayer.VideoSource != null)
@@ -433,6 +434,7 @@ namespace Interview
             if (tabInterview.SelectedIndex == 0)
             {
 
+               
                 startRecord.Enabled = true;
                 stopRecord.Enabled = false;
                 cmdNextClient.Enabled = false;
@@ -447,6 +449,7 @@ namespace Interview
                 lblRecording.ForeColor = Color.Blue;
                 lblPhoto.Text = "";
                 lblPhoto.ForeColor = Color.Blue;
+                TxtF_TextChanged(sender, e);
             }
 
             if (tabInterview.SelectedIndex == 1)
@@ -539,13 +542,28 @@ namespace Interview
             StartTime = DateTime.Now;
 
             logger.Info("Start record audio");
+
+
+            string fPath = txtPath.Text + "/" + UserID.ToString() + ".snd";
+            try
+            {
+                if (File.Exists(fPath))
+                {
+                    File.Delete(fPath);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                logger.Error(ex, "Deleting previous wav file");
+            }
+
             waveIn = new WaveInEvent();
             waveIn.DeviceNumber = AudioDevices.SelectedIndex;
             waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
            
 
             waveIn.BufferMilliseconds = 1000;
-            waveFile = new WaveFileWriter(txtPath.Text + "/" + UserID.ToString() + ".snd", waveIn.WaveFormat);
+            waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
             waveIn.DataAvailable += WaveOnDataAvailable;
             waveIn.StartRecording();
 
@@ -572,8 +590,22 @@ namespace Interview
             //FileWriter.Height = videoDevice.VideoResolution.FrameSize.Height;
             //FileWriter.Width  = videoDevice.VideoResolution.FrameSize.Width;
 
+
+            fPath = txtPath.Text + "/" + UserID.ToString() + "_video.avi";
+            try
+            {
+                if (File.Exists(fPath))
+                {
+                    File.Delete(fPath);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                logger.Error(ex, "Deleting previous video file");
+            }
+
             // Start
-            FileWriter.Open(txtPath.Text + "/" + UserID.ToString() + "_video.avi", videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height,16,VideoCodec.MPEG4);
+            FileWriter.Open(fPath, videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height,16,VideoCodec.MPEG4);
             //AudioSource.Start();
 
             startRecord.Enabled = false;
@@ -585,6 +617,19 @@ namespace Interview
             waveFile.WriteAsync(a.Buffer, 0, a.BytesRecorded);
             //System.Diagnostics.Debug.Print("recoded: " + a.BytesRecorded.ToString());
             
+        }
+
+        private ImageCodecInfo GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageDecoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
         }
 
         async private void Button1_Click(object sender, EventArgs e)
@@ -611,9 +656,28 @@ namespace Interview
                 {
                     
                     Bitmap b = new Bitmap(photoSourcePlayer.GetCurrentVideoFrame());
-                    {
+                    Image bi ;
+                    bi = (Image)b;
 
-                        b.Save(txtPath.Text + "\\" + UserID.ToString() + ".jpg", System.Drawing.Imaging.ImageFormat.Bmp);
+                    {
+                        string fPath = txtPath.Text + "\\" + UserID.ToString() + ".jpg";
+                        try {
+                            if (File.Exists(fPath))
+                            {
+                                File.Delete(fPath);
+                            }
+                        }
+                        catch (System.Exception ex)
+                        {
+                            logger.Error(ex,"Deleting previous photo");
+                        }
+                        EncoderParameters ep = new System.Drawing.Imaging.EncoderParameters(1);
+                        System.Drawing.Imaging.Encoder myEncoder =  System.Drawing.Imaging.Encoder.Quality;
+                        EncoderParameter myEncoderParameter = new EncoderParameter(myEncoder, 100L);
+                        ep.Param[0] = myEncoderParameter;
+                        ImageCodecInfo jgpEncoder = GetEncoder(ImageFormat.Jpeg);
+
+                        bi.Save(fPath, jgpEncoder, ep);
                     }
                 }
 
@@ -926,11 +990,23 @@ namespace Interview
             //}
 
             logger.Info("Start record audio");
+            string fPath = txtPath.Text + "/" + UserID.ToString() + ".wav";
+            try
+            {
+                if (File.Exists(fPath))
+                {
+                    File.Delete(fPath);
+                }
+            }
+            catch (System.Exception ex)
+            {
+                logger.Error(ex, "Deleting previous wav file");
+            }
             waveIn = new WaveInEvent();
             waveIn.DeviceNumber = AudioDevices.SelectedIndex;
             waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
             waveIn.BufferMilliseconds = 2000;
-            waveFile = new WaveFileWriter(txtPath.Text + "/" + UserID.ToString() + ".wav", waveIn.WaveFormat);
+            waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
             waveIn.DataAvailable += WaveOnDataAvailable;
             waveIn.StartRecording();
             cmdStartAudioRecord.Enabled = false;
@@ -1105,7 +1181,7 @@ namespace Interview
             recordTime = DateTime.Now - recordStartTime;
             lblRecording.Text = "Идет запись: " + recordTime.ToString(@"hh\:mm\:ss");
             lblRecording.ForeColor = Color.Blue;
-            if(DateTime.Now > recordStartTime.AddSeconds(15))
+            if(DateTime.Now > recordStartTime.AddSeconds(MINAUDIO))
             {
                 cmdStopAudioRecord.Enabled = true;
             }
