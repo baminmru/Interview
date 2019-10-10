@@ -26,7 +26,7 @@ namespace Interview
 {
     public partial class frmMain : Form
     {
-        private const int MINAUDIO = 1;
+        private const int MINAUDIO = 30;
         private static Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private WaveInEvent waveIn;
         private WaveFileWriter waveFile;
@@ -539,7 +539,7 @@ namespace Interview
             logger.Info("Start record video");
             VideoRecording = true;
             FrameCount = 0;
-            StartTime = DateTime.Now;
+          
 
             logger.Info("Start record audio");
 
@@ -565,7 +565,7 @@ namespace Interview
             waveIn.BufferMilliseconds = 1000;
             waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
             waveIn.DataAvailable += WaveOnDataAvailable;
-            waveIn.StartRecording();
+           
 
 
             //AudioSource = new AudioCaptureDevice()
@@ -585,7 +585,7 @@ namespace Interview
             //encoder = new WaveEncoder(stream);
 
 
-            FileWriter = new VideoFileWriter();
+           
             //FileWriter.Codec = VideoCodec.MPEG4;
             //FileWriter.Height = videoDevice.VideoResolution.FrameSize.Height;
             //FileWriter.Width  = videoDevice.VideoResolution.FrameSize.Width;
@@ -604,8 +604,12 @@ namespace Interview
                 logger.Error(ex, "Deleting previous video file");
             }
 
+            FileWriter = new VideoFileWriter();
+            StartTime = DateTime.Now;
+            timer2.Enabled = true;
             // Start
-            FileWriter.Open(fPath, videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height,16,VideoCodec.MPEG4);
+            FileWriter.Open(fPath, videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height,   (Int16) numFPS.Value, VideoCodec.MPEG4);
+            waveIn.StartRecording();
             //AudioSource.Start();
 
             startRecord.Enabled = false;
@@ -718,7 +722,7 @@ namespace Interview
 
         private void StopRecord_Click(object sender, EventArgs e)
         {
-            
+            timer2.Enabled = false;
             if (txtPath.Text == "")
             {
                 MessageBox.Show("Задайте путь для сохранения файлов");
@@ -842,6 +846,10 @@ namespace Interview
             attr.Value = videoCombo.Text;
             n.Attributes.Append(attr);
 
+            attr = xDoc.CreateAttribute("VideoFPS");
+            attr.Value = numFPS.Value.ToString();
+            n.Attributes.Append(attr);
+
             attr = xDoc.CreateAttribute("VideoResolution");
             attr.Value = videoResolutionCombo.Text;
             n.Attributes.Append(attr);
@@ -950,6 +958,18 @@ namespace Interview
                     logger.Error(ex);
                 }
 
+                try
+                {
+                    numFPS.Value = Int16.Parse(n.Attributes["VideoFPS"].Value);
+                        
+                }
+                catch (Exception ex)
+                {
+                    numFPS.Value = 16;
+                   logger.Error(ex);
+                }
+
+               
 
                 try
                 {
@@ -1388,10 +1408,13 @@ namespace Interview
                     try
                     {
                         FrameCount++;
-                        //ts = DateTime.Now - StartTime;
+                       
                         FileWriter.WriteVideoFrame(image,FrameCount);
-                        //System.Diagnostics.Debug.Print("NewFrame: " + FrameCount.ToString());
-                    }
+                        //FileWriter.WriteVideoFrame(image,ts);
+
+                    
+                   
+                }
                     catch (System.Exception ex)
                     {
                         logger.Error(ex);
@@ -1404,6 +1427,15 @@ namespace Interview
         private void PictureBox1_Click(object sender, EventArgs e)
         {
             Process.Start("https://linkas.ru/");
+        }
+
+        private void Timer2_Tick(object sender, EventArgs e)
+        {
+           
+                ts = DateTime.Now - StartTime;
+                lblFPS.Text = "FPS: " + (FrameCount / ts.TotalSeconds).ToString("#0.00");
+                Application.DoEvents();
+           
         }
     }
 }

@@ -55,6 +55,7 @@
             this.cmdStopAudioRecord = new System.Windows.Forms.Button();
             this.cmdStartAudioRecord = new System.Windows.Forms.Button();
             this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.lblFPS = new System.Windows.Forms.Label();
             this.cmdNextClient = new System.Windows.Forms.Button();
             this.stopRecord = new System.Windows.Forms.Button();
             this.startRecord = new System.Windows.Forms.Button();
@@ -74,6 +75,8 @@
             this.AudioDevices = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.numFPS = new System.Windows.Forms.NumericUpDown();
+            this.label12 = new System.Windows.Forms.Label();
             this.videoResolutionCombo = new System.Windows.Forms.ComboBox();
             this.label8 = new System.Windows.Forms.Label();
             this.videoCombo = new System.Windows.Forms.ComboBox();
@@ -91,6 +94,7 @@
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.folderDlg = new System.Windows.Forms.FolderBrowserDialog();
             this.timer1 = new System.Windows.Forms.Timer(this.components);
+            this.timer2 = new System.Windows.Forms.Timer(this.components);
             this.tabInterview.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.groupBox1.SuspendLayout();
@@ -102,6 +106,7 @@
             this.groupBox5.SuspendLayout();
             this.groupBox4.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numFPS)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.groupBox6.SuspendLayout();
             this.tabPage7.SuspendLayout();
@@ -412,6 +417,7 @@
             // 
             // tabPage3
             // 
+            this.tabPage3.Controls.Add(this.lblFPS);
             this.tabPage3.Controls.Add(this.cmdNextClient);
             this.tabPage3.Controls.Add(this.stopRecord);
             this.tabPage3.Controls.Add(this.startRecord);
@@ -426,6 +432,16 @@
             this.tabPage3.UseVisualStyleBackColor = true;
             this.tabPage3.Click += new System.EventHandler(this.TabPage3_Click);
             // 
+            // lblFPS
+            // 
+            this.lblFPS.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
+            this.lblFPS.ForeColor = System.Drawing.Color.Blue;
+            this.lblFPS.Location = new System.Drawing.Point(459, 521);
+            this.lblFPS.Name = "lblFPS";
+            this.lblFPS.Size = new System.Drawing.Size(98, 60);
+            this.lblFPS.TabIndex = 5;
+            this.lblFPS.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
             // cmdNextClient
             // 
             this.cmdNextClient.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
@@ -433,9 +449,9 @@
             this.cmdNextClient.Enabled = false;
             this.cmdNextClient.Image = ((System.Drawing.Image)(resources.GetObject("cmdNextClient.Image")));
             this.cmdNextClient.ImageAlign = System.Drawing.ContentAlignment.MiddleRight;
-            this.cmdNextClient.Location = new System.Drawing.Point(461, 521);
+            this.cmdNextClient.Location = new System.Drawing.Point(563, 521);
             this.cmdNextClient.Name = "cmdNextClient";
-            this.cmdNextClient.Size = new System.Drawing.Size(279, 60);
+            this.cmdNextClient.Size = new System.Drawing.Size(177, 60);
             this.cmdNextClient.TabIndex = 4;
             this.cmdNextClient.Text = "Следующий";
             this.cmdNextClient.UseVisualStyleBackColor = true;
@@ -474,9 +490,9 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.videoSourcePlayer.KeepAspectRatio = true;
-            this.videoSourcePlayer.Location = new System.Drawing.Point(7, 13);
+            this.videoSourcePlayer.Location = new System.Drawing.Point(7, 35);
             this.videoSourcePlayer.Name = "videoSourcePlayer";
-            this.videoSourcePlayer.Size = new System.Drawing.Size(733, 502);
+            this.videoSourcePlayer.Size = new System.Drawing.Size(733, 480);
             this.videoSourcePlayer.TabIndex = 1;
             this.videoSourcePlayer.Text = "videoSourcePlayer";
             this.videoSourcePlayer.VideoSource = null;
@@ -623,9 +639,9 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox4.Controls.Add(this.AudioDevices);
             this.groupBox4.Controls.Add(this.label10);
-            this.groupBox4.Location = new System.Drawing.Point(7, 258);
+            this.groupBox4.Location = new System.Drawing.Point(7, 276);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(728, 82);
+            this.groupBox4.Size = new System.Drawing.Size(728, 64);
             this.groupBox4.TabIndex = 10;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Звук";
@@ -636,7 +652,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.AudioDevices.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.AudioDevices.FormattingEnabled = true;
-            this.AudioDevices.Location = new System.Drawing.Point(233, 35);
+            this.AudioDevices.Location = new System.Drawing.Point(234, 25);
             this.AudioDevices.Name = "AudioDevices";
             this.AudioDevices.Size = new System.Drawing.Size(473, 28);
             this.AudioDevices.TabIndex = 11;
@@ -644,7 +660,7 @@
             // label10
             // 
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(20, 38);
+            this.label10.Location = new System.Drawing.Point(13, 28);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(192, 20);
             this.label10.TabIndex = 10;
@@ -654,16 +670,49 @@
             // 
             this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox3.Controls.Add(this.numFPS);
+            this.groupBox3.Controls.Add(this.label12);
             this.groupBox3.Controls.Add(this.videoResolutionCombo);
             this.groupBox3.Controls.Add(this.label8);
             this.groupBox3.Controls.Add(this.videoCombo);
             this.groupBox3.Controls.Add(this.label9);
-            this.groupBox3.Location = new System.Drawing.Point(7, 139);
+            this.groupBox3.Location = new System.Drawing.Point(7, 125);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(728, 113);
+            this.groupBox3.Size = new System.Drawing.Size(728, 145);
             this.groupBox3.TabIndex = 9;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Видео";
+            // 
+            // numFPS
+            // 
+            this.numFPS.Location = new System.Drawing.Point(235, 93);
+            this.numFPS.Maximum = new decimal(new int[] {
+            50,
+            0,
+            0,
+            0});
+            this.numFPS.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numFPS.Name = "numFPS";
+            this.numFPS.Size = new System.Drawing.Size(77, 26);
+            this.numFPS.TabIndex = 13;
+            this.numFPS.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(26, 91);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(44, 20);
+            this.label12.TabIndex = 12;
+            this.label12.Text = "FPS:";
             // 
             // videoResolutionCombo
             // 
@@ -671,7 +720,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.videoResolutionCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.videoResolutionCombo.FormattingEnabled = true;
-            this.videoResolutionCombo.Location = new System.Drawing.Point(234, 69);
+            this.videoResolutionCombo.Location = new System.Drawing.Point(234, 59);
             this.videoResolutionCombo.Name = "videoResolutionCombo";
             this.videoResolutionCombo.Size = new System.Drawing.Size(473, 28);
             this.videoResolutionCombo.TabIndex = 11;
@@ -679,7 +728,7 @@
             // label8
             // 
             this.label8.AutoSize = true;
-            this.label8.Location = new System.Drawing.Point(23, 72);
+            this.label8.Location = new System.Drawing.Point(23, 59);
             this.label8.Name = "label8";
             this.label8.Size = new System.Drawing.Size(158, 20);
             this.label8.TabIndex = 10;
@@ -691,7 +740,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.videoCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.videoCombo.FormattingEnabled = true;
-            this.videoCombo.Location = new System.Drawing.Point(234, 39);
+            this.videoCombo.Location = new System.Drawing.Point(234, 25);
             this.videoCombo.Name = "videoCombo";
             this.videoCombo.Size = new System.Drawing.Size(473, 28);
             this.videoCombo.TabIndex = 9;
@@ -700,7 +749,7 @@
             // label9
             // 
             this.label9.AutoSize = true;
-            this.label9.Location = new System.Drawing.Point(23, 42);
+            this.label9.Location = new System.Drawing.Point(23, 28);
             this.label9.Name = "label9";
             this.label9.Size = new System.Drawing.Size(155, 20);
             this.label9.TabIndex = 8;
@@ -716,7 +765,7 @@
             this.groupBox2.Controls.Add(this.label7);
             this.groupBox2.Location = new System.Drawing.Point(7, 15);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(728, 118);
+            this.groupBox2.Size = new System.Drawing.Size(728, 104);
             this.groupBox2.TabIndex = 8;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Фото";
@@ -727,7 +776,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.photoResolutionCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.photoResolutionCombo.FormattingEnabled = true;
-            this.photoResolutionCombo.Location = new System.Drawing.Point(234, 69);
+            this.photoResolutionCombo.Location = new System.Drawing.Point(234, 59);
             this.photoResolutionCombo.Name = "photoResolutionCombo";
             this.photoResolutionCombo.Size = new System.Drawing.Size(473, 28);
             this.photoResolutionCombo.TabIndex = 11;
@@ -735,7 +784,7 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(23, 72);
+            this.label6.Location = new System.Drawing.Point(23, 59);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(153, 20);
             this.label6.TabIndex = 10;
@@ -747,7 +796,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.photoCombo.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.photoCombo.FormattingEnabled = true;
-            this.photoCombo.Location = new System.Drawing.Point(234, 39);
+            this.photoCombo.Location = new System.Drawing.Point(234, 25);
             this.photoCombo.Name = "photoCombo";
             this.photoCombo.Size = new System.Drawing.Size(473, 28);
             this.photoCombo.TabIndex = 9;
@@ -756,7 +805,7 @@
             // label7
             // 
             this.label7.AutoSize = true;
-            this.label7.Location = new System.Drawing.Point(23, 42);
+            this.label7.Location = new System.Drawing.Point(23, 28);
             this.label7.Name = "label7";
             this.label7.Size = new System.Drawing.Size(150, 20);
             this.label7.TabIndex = 8;
@@ -841,6 +890,11 @@
             this.timer1.Interval = 1000;
             this.timer1.Tick += new System.EventHandler(this.Timer1_Tick);
             // 
+            // timer2
+            // 
+            this.timer2.Interval = 1000;
+            this.timer2.Tick += new System.EventHandler(this.Timer2_Tick);
+            // 
             // frmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -873,6 +927,7 @@
             this.groupBox4.PerformLayout();
             this.groupBox3.ResumeLayout(false);
             this.groupBox3.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numFPS)).EndInit();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.groupBox6.ResumeLayout(false);
@@ -946,5 +1001,9 @@
         private System.Windows.Forms.TabPage tabPage7;
         private System.Windows.Forms.PictureBox pictureBox1;
         private System.Windows.Forms.Label lblAbout;
+        private System.Windows.Forms.NumericUpDown numFPS;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.Label lblFPS;
+        private System.Windows.Forms.Timer timer2;
     }
 }
