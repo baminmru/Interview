@@ -251,6 +251,22 @@ namespace Interview
                 MessageBox.Show("Задайте путь для сохранения файлов");
                 return;
             }
+
+
+            if (File.Exists(txtPath.Text + "/" + UserID.ToString() + ".xml"))
+            {
+                if (MessageBox.Show("Создать новый пакет комплект данных для тестируемого-(Да), или перезаписать существующие данные-(Нет)?", "Файл уже существует", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                {
+                    UserID = new Guid();
+                    logger.Info("Creating data for new user. Change user ID to: " + UserID.ToString());
+
+                }
+                else
+                {
+                    logger.Info("Overrite user data: " + UserID.ToString());
+                }
+            }
+
             XmlDocument xDoc = new XmlDocument();
 
             xDoc.LoadXml(@"<?xml version=""1.0"" encoding=""utf-8""?><interview/>");
@@ -536,15 +552,23 @@ namespace Interview
                 }
             }
 
-            logger.Info("Start record video");
+
+            string fPath = txtPath.Text + "\\" + UserID.ToString() + ".avi";
+            if (File.Exists(fPath))
+            {
+                if (MessageBox.Show("Перезаписать видеозапись тестируемого?", "Файл уже существует", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.No)
+                {
+                    return;
+                }
+
+            }
+
+
+            logger.Info("Start recording video");
             VideoRecording = true;
             FrameCount = 0;
-          
 
-            logger.Info("Start record audio");
-
-
-            string fPath = txtPath.Text + "/" + UserID.ToString() + ".snd";
+            fPath = txtPath.Text + "\\" + UserID.ToString() + ".snd";
             try
             {
                 if (File.Exists(fPath))
@@ -554,44 +578,27 @@ namespace Interview
             }
             catch (System.Exception ex)
             {
-                logger.Error(ex, "Deleting previous wav file");
+                logger.Error(ex, "Deleting previous snd file");
             }
 
-            waveIn = new WaveInEvent();
-            waveIn.DeviceNumber = AudioDevices.SelectedIndex;
-            waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
-           
-
-            waveIn.BufferMilliseconds = 1000;
-            waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
-            waveIn.DataAvailable += WaveOnDataAvailable;
-           
+            try { 
+                waveIn = new WaveInEvent();
+                waveIn.DeviceNumber = AudioDevices.SelectedIndex;
+                waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
 
 
-            //AudioSource = new AudioCaptureDevice()
-            //{
-            //    // Listen on 22050 Hz
-            //    DesiredFrameSize = 8192,
-            //    SampleRate = 22050,
-            //    // We will be reading 16-bit PCM
-            //    Format = SampleFormat.Format16Bit
-            //};
-            ////duration = TimeSpan.FromTicks(0);
-            //AudioSource.NewFrame += AudioSource_NewFrame;
+                waveIn.BufferMilliseconds = 1000;
+                waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
+                waveIn.DataAvailable += WaveOnDataAvailable;
+                waveIn.StartRecording();
+            }
+            catch (System.Exception ex)
+            {
+                logger.Error(ex, "Start recording audio ");
+            }
 
 
-            // Create stream to store file
-            //stream = new MemoryStream();
-            //encoder = new WaveEncoder(stream);
-
-
-           
-            //FileWriter.Codec = VideoCodec.MPEG4;
-            //FileWriter.Height = videoDevice.VideoResolution.FrameSize.Height;
-            //FileWriter.Width  = videoDevice.VideoResolution.FrameSize.Width;
-
-
-            fPath = txtPath.Text + "/" + UserID.ToString() + "_video.avi";
+            fPath = txtPath.Text + "\\" + UserID.ToString() + "_video.avi";
             try
             {
                 if (File.Exists(fPath))
@@ -603,14 +610,16 @@ namespace Interview
             {
                 logger.Error(ex, "Deleting previous video file");
             }
+          
 
             FileWriter = new VideoFileWriter();
             StartTime = DateTime.Now;
             timer2.Enabled = true;
             // Start
+         
             FileWriter.Open(fPath, videoDevice.VideoResolution.FrameSize.Width, videoDevice.VideoResolution.FrameSize.Height,   (Int16) numFPS.Value, VideoCodec.MPEG4);
-            waveIn.StartRecording();
-            //AudioSource.Start();
+           
+       
 
             startRecord.Enabled = false;
             stopRecord.Enabled = true;
@@ -651,6 +660,9 @@ namespace Interview
             //    return;
             //}
 
+            string fPath = txtPath.Text + "\\" + UserID.ToString() + ".jpg";
+          
+
             cmdShot.Enabled = false;
             logger.Info("Make photo");
             try
@@ -664,7 +676,16 @@ namespace Interview
                     bi = (Image)b;
 
                     {
-                        string fPath = txtPath.Text + "\\" + UserID.ToString() + ".jpg";
+
+                        if (File.Exists(fPath))
+                        {
+                            if (MessageBox.Show("Перезаписать фото тестируемого?", "Файл уже существует", MessageBoxButtons.YesNo,MessageBoxIcon.Warning) == DialogResult.No)
+                            {
+                                return;
+                            }
+
+                        }
+
                         try {
                             if (File.Exists(fPath))
                             {
@@ -1009,10 +1030,20 @@ namespace Interview
             //    return;
             //}
 
-            logger.Info("Start record audio");
+           
             string fPath = txtPath.Text + "/" + UserID.ToString() + ".wav";
             try
             {
+                if (File.Exists(fPath))
+                {
+                    if (MessageBox.Show("Перезаписать аудиозапись тестируемого?", "Файл уже существует", MessageBoxButtons.YesNo,MessageBoxIcon.Warning) == DialogResult.No)
+                    {
+                        logger.Info("Audio file already exists. Audio recording cancelled.");
+                        return;
+                    }
+
+                }
+
                 if (File.Exists(fPath))
                 {
                     File.Delete(fPath);
@@ -1022,13 +1053,21 @@ namespace Interview
             {
                 logger.Error(ex, "Deleting previous wav file");
             }
-            waveIn = new WaveInEvent();
-            waveIn.DeviceNumber = AudioDevices.SelectedIndex;
-            waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
-            waveIn.BufferMilliseconds = 2000;
-            waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
-            waveIn.DataAvailable += WaveOnDataAvailable;
-            waveIn.StartRecording();
+            logger.Info("Start record audio");
+            try
+            {
+                waveIn = new WaveInEvent();
+                waveIn.DeviceNumber = AudioDevices.SelectedIndex;
+                waveIn.WaveFormat = new WaveFormat(16000, 16, 1);
+                waveIn.BufferMilliseconds = 2000;
+                waveFile = new WaveFileWriter(fPath, waveIn.WaveFormat);
+                waveIn.DataAvailable += WaveOnDataAvailable;
+                waveIn.StartRecording();
+            }
+            catch (System.Exception ex)
+            {
+                logger.Error(ex, "Start record audio");
+            }
             cmdStartAudioRecord.Enabled = false;
            
             recordStartTime = DateTime.Now;
