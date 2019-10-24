@@ -75,6 +75,7 @@
             this.AudioDevices = new System.Windows.Forms.ComboBox();
             this.label10 = new System.Windows.Forms.Label();
             this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.button1 = new System.Windows.Forms.Button();
             this.numFPS = new System.Windows.Forms.NumericUpDown();
             this.label12 = new System.Windows.Forms.Label();
             this.videoResolutionCombo = new System.Windows.Forms.ComboBox();
@@ -670,6 +671,7 @@
             // 
             this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox3.Controls.Add(this.button1);
             this.groupBox3.Controls.Add(this.numFPS);
             this.groupBox3.Controls.Add(this.label12);
             this.groupBox3.Controls.Add(this.videoResolutionCombo);
@@ -682,6 +684,16 @@
             this.groupBox3.TabIndex = 9;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Видео";
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(318, 93);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(191, 34);
+            this.button1.TabIndex = 14;
+            this.button1.Text = "Тест FPS";
+            this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click_1);
             // 
             // numFPS
             // 
@@ -1005,5 +1017,6 @@
         private System.Windows.Forms.Label label12;
         private System.Windows.Forms.Label lblFPS;
         private System.Windows.Forms.Timer timer2;
+        private System.Windows.Forms.Button button1;
     }
 }

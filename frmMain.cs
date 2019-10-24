@@ -26,7 +26,7 @@ namespace Interview
 {
     public partial class frmMain : Form
     {
-        private const int MINAUDIO = 30;
+        private const int MINAUDIO = 55;
         private static Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private WaveInEvent waveIn;
         private WaveFileWriter waveFile;
@@ -661,7 +661,7 @@ namespace Interview
             //}
 
             string fPath = txtPath.Text + "\\" + UserID.ToString() + ".jpg";
-          
+            
 
             cmdShot.Enabled = false;
             logger.Info("Make photo");
@@ -676,7 +676,7 @@ namespace Interview
                     bi = (Image)b;
 
                     {
-
+                        
                         if (File.Exists(fPath))
                         {
                             if (MessageBox.Show("Перезаписать фото тестируемого?", "Файл уже существует", MessageBoxButtons.YesNo,MessageBoxIcon.Warning) == DialogResult.No)
@@ -938,8 +938,21 @@ namespace Interview
 
                 try
                 {
-                    if(photoCombo.Items.Contains(n.Attributes["PhotoCamera"].Value))
-                        photoCombo.Text = n.Attributes["PhotoCamera"].Value;
+                    if (n.Attributes["PhotoCamera"].Value != "")
+                    {
+                        if (photoCombo.Items.Contains(n.Attributes["PhotoCamera"].Value))
+                        {
+                            photoCombo.Text = n.Attributes["PhotoCamera"].Value;
+                        }
+                        else
+                        {
+                            if (photoCombo.Items.Count > 0)
+                                MessageBox.Show("Камера для фотографии, выбранная в прошлой конфигурации отсутсвует, или отключена.\r\n Будет использована первая камера из списка имеющихся.\r\nПроверьте установки размера кадра.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            else
+                                MessageBox.Show("Камера для фотографии, выбранная в прошлой конфигурации отсутсвует, или отключена.\r\nНет доступных камер для фотографирования.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -960,8 +973,19 @@ namespace Interview
 
                 try
                 {
-                    if(videoCombo.Items.Contains(n.Attributes["VideoCamera"].Value))
-                        videoCombo.Text= n.Attributes["VideoCamera"].Value;
+                    if (n.Attributes["VideoCamera"].Value != "")
+                    {
+                        if (videoCombo.Items.Contains(n.Attributes["VideoCamera"].Value))
+                            videoCombo.Text = n.Attributes["VideoCamera"].Value;
+                        else
+                        {
+                            if (videoCombo.Items.Count > 0)
+                                MessageBox.Show("Камера для записи видео, выбранная в прошлой конфигурации отсутсвует, или отключена.\r\n Будет использована первая камера из списка имеющихся.\r\nПроверьте установки размера кадра и FPS.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            else
+                                MessageBox.Show("Камера для записи видео, выбранная в прошлой конфигурации отсутсвует, или отключена.\r\nНет доступных камер для записи видео.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -971,8 +995,10 @@ namespace Interview
 
                 try
                 {
+                    
                     if(videoResolutionCombo.Items.Contains(n.Attributes["VideoResolution"].Value))
-                        videoResolutionCombo.Text = n.Attributes["VideoResolution"].Value;      
+                        videoResolutionCombo.Text = n.Attributes["VideoResolution"].Value;
+                  
                 }
                 catch (Exception ex)
                 {
@@ -996,6 +1022,14 @@ namespace Interview
                 {
                     if(AudioDevices.Items.Contains(n.Attributes["AudioDevice"].Value))
                         AudioDevices.Text = n.Attributes["AudioDevice"].Value;
+                    else
+                    {
+                        if (photoCombo.Items.Count > 0)
+                            MessageBox.Show("Микрофон, выбранный в прошлой конфигурации отсутсвует, или отключен.\r\n Будет использована первая микрофон из списка имеющихся", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        else
+                            MessageBox.Show("Микрофон,  выбранный в прошлой конфигурации отсутсвует, или отключен.\r\nНет доступных микрофонов для записи звука.", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -1200,8 +1234,8 @@ namespace Interview
                 txtLog.Text = spl[0] + "\r\n" + txtLog.Text;
                 foreach (FileInfo rf in toRename)
                 {
-                    txtLog.Text = rf.Name + " -> " + txtPrefix.Text + "." + pb.Value.ToString() + "." + spl[0] + rf.Extension + "\r\n" + txtLog.Text;
-                    rf.MoveTo(txtPath.Text + "/" + txtPrefix.Text + "." + pb.Value.ToString() + "." + spl[0] + rf.Extension);
+                    txtLog.Text = rf.Name + " -> " + txtPrefix.Text + "." + pb.Value.ToString() + "." + rf.Name.Replace(spl[1], spl[0]) + "\r\n" + txtLog.Text;
+                    rf.MoveTo(txtPath.Text + "/" + txtPrefix.Text + "." + pb.Value.ToString() + "." + rf.Name.Replace(spl[1], spl[0]));
                 }
 
 
@@ -1262,8 +1296,10 @@ namespace Interview
 
                 ProxyFile pf = new ProxyFile();
                 pf.Data = File.ReadAllBytes(txtPath.Text + "/" + UserID.ToString() + ".wav");
-                pf.FileName = UserID.ToString() + ".wav";
-                logger.Info("verify file: " + pf.FileName);
+
+                // на сервере срхраняем каждый раз с новым именем
+                pf.FileName = Guid.NewGuid().ToString() + ".wav";
+                logger.Info("verify file: " + pf.FileName +" for user: " + UserID.ToString());
 
                 // pass file to check server
                 logger.Info("upload file");
@@ -1352,8 +1388,10 @@ namespace Interview
 
                 ProxyFile pf = new ProxyFile();
                 pf.Data = File.ReadAllBytes(txtPath.Text + "/" + UserID.ToString() + ".jpg");
-                pf.FileName = UserID.ToString() + ".jpg";
-                logger.Info("verify file: " + pf.FileName);
+
+                // на сервере срхраняем каждый раз с новым именем
+                pf.FileName = Guid.NewGuid().ToString() + ".jpg";
+                logger.Info("verify file: " + pf.FileName + " for user: " + UserID.ToString());
 
                 logger.Info("upload file");
                 // pass file to check server
@@ -1475,6 +1513,44 @@ namespace Interview
                 lblFPS.Text = "FPS: " + (FrameCount / ts.TotalSeconds).ToString("#0.00");
                 Application.DoEvents();
            
+        }
+
+        private void button1_Click_1(object sender, EventArgs e)
+        {
+            
+            if (videoDevice != null)
+            {
+                if ((videoCapabilities != null) && (videoCapabilities.Length != 0))
+                {
+
+                    if (videoResolutionCombo.SelectedIndex >= 0 && videoResolutionCombo.SelectedIndex < videoCapabilities.Length)
+                        videoDevice.VideoResolution = videoCapabilities[videoResolutionCombo.SelectedIndex];
+                    else
+                        videoDevice.VideoResolution = videoCapabilities[0];
+                }
+
+                frmTestVideo ftv = new frmTestVideo();
+
+                ftv.videoSourcePlayer.VideoSource = videoDevice;
+                ftv.videoSourcePlayer.Start();
+                ftv.ShowDialog();
+                if (ftv.SaveLastFPS)
+                {
+                    try
+                    {
+                        numFPS.Value = ftv.LastFPS;
+                    }
+                    catch
+                    {
+
+                    }
+                    
+                }
+                
+            }
+
+            
+            
         }
     }
 }
